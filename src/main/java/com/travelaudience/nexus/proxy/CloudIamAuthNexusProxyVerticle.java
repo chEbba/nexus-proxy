@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.net.MediaType;
 import com.google.common.primitives.Ints;
 import io.vertx.core.Context;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
@@ -24,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UncheckedIOException;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -42,6 +44,7 @@ public class CloudIamAuthNexusProxyVerticle extends BaseNexusProxyVerticle {
     private static final String ORGANIZATION_ID = System.getenv("ORGANIZATION_ID");
     private static final String REDIRECT_URL = System.getenv("REDIRECT_URL");
     private static final Integer SESSION_TTL = Ints.tryParse(System.getenv("SESSION_TTL"));
+    private static final String[] SERVICE_USERS = Objects.toString(System.getenv("SERVICE_USERS"), "").split(",");
 
     /**
      * The path that corresponds to the callback URL to be called by Google.
@@ -109,6 +112,17 @@ public class CloudIamAuthNexusProxyVerticle extends BaseNexusProxyVerticle {
                 KEYSTORE_PASS,
                 ImmutableList.of(nexusDockerHost, nexusHttpHost)
         );
+    }
+
+    @Override
+    public void start(Future<Void> startFuture) throws Exception {
+        for (String user: SERVICE_USERS) {
+            String userId = user.trim();
+            if (!userId.isEmpty()) {
+                String token = jwtAuth.generate(user);
+                LOGGER.info("User {} token: {}", user, token);
+            }
+        }
     }
 
     @Override
@@ -253,9 +267,16 @@ public class CloudIamAuthNexusProxyVerticle extends BaseNexusProxyVerticle {
             // This is done mostly to prevent long-lived JWT tokens from being used after a user leaves the organization.
 
             final Boolean hasAuthorizationHeader = ((Boolean) ctx.data().getOrDefault(HAS_AUTHORIZATION_HEADER, false));
+            boolean isService = false;
+            for (String user: SERVICE_USERS) {
+                if (user.equals(userId)) {
+                    isService = true;
+                    break;
+                }
+            }
 
             // If there is an authorization header but membership verification is not required, skip the remaining of this handler.
-            if (hasAuthorizationHeader && !JWT_REQUIRES_MEMBERSHIP_VERIFICATION) {
+            if (hasAuthorizationHeader && (!JWT_REQUIRES_MEMBERSHIP_VERIFICATION || isService)) {
                 LOGGER.debug("{} has a valid auth token but is not an organization member. Allowing since membership verification is not required.", userId);
                 ctx.next();
                 return;
