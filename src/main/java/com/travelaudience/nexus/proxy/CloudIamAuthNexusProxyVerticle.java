@@ -277,7 +277,7 @@ public class CloudIamAuthNexusProxyVerticle extends BaseNexusProxyVerticle {
             }
 
             // If there is an authorization header but membership verification is not required, skip the remaining of this handler.
-            if (hasAuthorizationHeader && (!JWT_REQUIRES_MEMBERSHIP_VERIFICATION || isService)) {
+            if ((hasAuthorizationHeader && !JWT_REQUIRES_MEMBERSHIP_VERIFICATION) || isService) {
                 LOGGER.debug("{} has a valid auth token but is not an organization member. Allowing since membership verification is not required.", userId);
                 ctx.next();
                 return;
