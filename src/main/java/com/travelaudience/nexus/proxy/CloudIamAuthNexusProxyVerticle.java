@@ -123,6 +123,7 @@ public class CloudIamAuthNexusProxyVerticle extends BaseNexusProxyVerticle {
                 LOGGER.info("User {} token: {}", user, token);
             }
         }
+        super.start(startFuture);
     }
 
     @Override
