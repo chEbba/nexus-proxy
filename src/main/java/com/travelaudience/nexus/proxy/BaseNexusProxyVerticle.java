@@ -86,8 +86,9 @@ public abstract class BaseNexusProxyVerticle extends AbstractVerticle {
         });
 
         if (dockerProxy != null) {
+            final NexusHttpProxy proxy = dockerProxy;
             router.route(ALL_PATHS).handler(VirtualHostHandler.create(nexusDockerHost, ctx -> {
-                ctx.data().put(PROXY, dockerProxy);
+                ctx.data().put(PROXY, proxy);
                 ctx.next();
             }));
         }
