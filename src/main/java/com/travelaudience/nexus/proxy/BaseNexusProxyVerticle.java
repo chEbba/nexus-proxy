@@ -53,12 +53,16 @@ public abstract class BaseNexusProxyVerticle extends AbstractVerticle {
 
     @Override
     public final void start() throws Exception {
-        final NexusHttpProxy dockerProxy = NexusHttpProxy.create(
-                vertx,
-                UPSTREAM_HOST,
-                UPSTREAM_DOCKER_PORT,
-                NEXUS_RUT_HEADER
-        );
+        NexusHttpProxy dockerProxy = null;
+        if (nexusDockerHost != nexusHttpHost) {
+            dockerProxy = NexusHttpProxy.create(
+                    vertx,
+                    UPSTREAM_HOST,
+                    UPSTREAM_DOCKER_PORT,
+                    NEXUS_RUT_HEADER
+            );
+        }
+
         final NexusHttpProxy httpProxy = NexusHttpProxy.create(
                 vertx,
                 UPSTREAM_HOST,
@@ -81,10 +85,12 @@ public abstract class BaseNexusProxyVerticle extends AbstractVerticle {
             }
         });
 
-        router.route(ALL_PATHS).handler(VirtualHostHandler.create(nexusDockerHost, ctx -> {
-            ctx.data().put(PROXY, dockerProxy);
-            ctx.next();
-        }));
+        if (dockerProxy != null) {
+            router.route(ALL_PATHS).handler(VirtualHostHandler.create(nexusDockerHost, ctx -> {
+                ctx.data().put(PROXY, dockerProxy);
+                ctx.next();
+            }));
+        }
 
         router.route(ALL_PATHS).handler(VirtualHostHandler.create(nexusHttpHost, ctx -> {
             ctx.data().put(PROXY, httpProxy);
