@@ -54,7 +54,7 @@ public abstract class BaseNexusProxyVerticle extends AbstractVerticle {
     @Override
     public final void start() throws Exception {
         NexusHttpProxy dockerProxy = null;
-        if (nexusDockerHost != nexusHttpHost) {
+        if (!nexusDockerHost.equals(nexusHttpHost)) {
             dockerProxy = NexusHttpProxy.create(
                     vertx,
                     UPSTREAM_HOST,
